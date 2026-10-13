@@ -1,0 +1,1 @@
+"""StaySignal churn analytics application."""
