@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import sys
 from html import escape
 from pathlib import Path
@@ -165,7 +166,7 @@ def score_export(raw: pd.DataFrame, bundle):
     if raw.empty:
         return None, None, ["The uploaded CSV has no rows."], {}
     features = raw[required].copy()
-    for column in features.select_dtypes(include="object").columns:
+    for column in features.select_dtypes(include=["object", "string"]).columns:
         features[column] = features[column].map(lambda value: value.strip() if isinstance(value, str) else value)
         features[column] = features[column].replace("", np.nan)
     for column in NUMERIC_COLUMNS:
@@ -250,7 +251,7 @@ upload_error = None
 upload_warning = None
 if uploaded_file is not None:
     try:
-        raw_upload = pd.read_csv(uploaded_file.getvalue())
+        raw_upload = pd.read_csv(io.BytesIO(uploaded_file.getvalue()))
         uploaded_scores, uploaded_features, upload_errors, unseen_categories = score_export(raw_upload, bundle)
         if upload_errors:
             upload_error = "CSV needs attention: " + ", ".join(upload_errors)
@@ -474,7 +475,8 @@ elif page == "Customer explorer":
             tech_support = st.selectbox("Tech support", ["Yes", "No", "No internet service"], index=1)
         with fields_mid:
             monthly = st.number_input("Monthly charges", min_value=0.0, max_value=500.0, value=float(reference["MonthlyCharges"]), step=1.0)
-            total = st.number_input("Total charges", min_value=0.0, max_value=100000.0, value=float(reference["TotalCharges"]), step=10.0)
+            total_charge_default = 0.0 if pd.isna(reference["TotalCharges"]) else float(reference["TotalCharges"])
+            total = st.number_input("Total charges", min_value=0.0, max_value=100000.0, value=total_charge_default, step=10.0)
             phone = st.selectbox("Phone service", ["Yes", "No"], index=0)
             multiple = st.selectbox("Multiple lines", ["Yes", "No", "No phone service"], index=1)
             backup = st.selectbox("Online backup", ["Yes", "No", "No internet service"], index=0)
